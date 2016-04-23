@@ -29,9 +29,16 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -226,6 +233,49 @@ public class UserLocationActivity extends AppCompatActivity implements
         }
     }
 
+    private String convertInputStreamToString(InputStream inputStream) throws IOException{
+        BufferedReader bufferedReader = new BufferedReader( new InputStreamReader(inputStream));
+        String line = "";
+        String result = "";
+        try {
+            while((line = bufferedReader.readLine()) != null){
+                result += line;
+            }
+        } catch (Exception e){
+            Toast.makeText(this, "InputStream Conversion Exception", Toast.LENGTH_SHORT).show();
+        }
+
+        inputStream.close();
+        return result;
+    }
+
+    public String makeRequest (String URL){
+        InputStream iStream = null;
+        String response = "";
+        HttpClient httpclient = new DefaultHttpClient();
+        HttpGet httpget = new HttpGet(URL);
+        try {
+            HttpResponse httpResponse = httpclient.execute(httpget);
+            iStream = httpResponse.getEntity().getContent();
+
+            if(iStream != null)
+                response = convertInputStreamToString(iStream);
+
+        } catch (Exception e) {
+            Log.d("InputStream", e.getLocalizedMessage());
+        }
+
+        return response;
+    }
+
+    private class GetData extends AsyncTask<Void, Void, Void> {
+
+        protected Void doInBackground(Void... params){
+            makeRequest(SERVER_ADDRESS);
+            return null;
+        }
+    }
+
     private class UploadImage extends AsyncTask<Void, Void, Void> {
 
         Bitmap image;
@@ -255,6 +305,8 @@ public class UserLocationActivity extends AppCompatActivity implements
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
             Toast.makeText(getApplicationContext(), "Image Uploaded", Toast.LENGTH_SHORT).show();
+
+            //new GetData().execute();
         }
     }
 
