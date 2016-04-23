@@ -37,6 +37,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -290,6 +291,19 @@ public class UserLocationActivity extends AppCompatActivity implements
 
         inputStream.close();
         return result;
+        /*HttpResponse response; // some response object
+        BufferedReader reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
+        StringBuilder builder = new StringBuilder();
+        for (String line = null; (line = reader.readLine()) != null;) {
+            builder.append(line).append("\n");
+        }
+        JSONTokener tokener = new JSONTokener(builder.toString());
+        try{
+
+        } catch (Exception e) {
+            JSONArray finalResult = new JSONArray(tokener);
+        }*/
+        //return null;
     }
 
     public String makeRequest (String URL){
@@ -303,6 +317,8 @@ public class UserLocationActivity extends AppCompatActivity implements
 
             if(iStream != null)
                 response = convertInputStreamToString(iStream);
+            //JSONObject myObject = new JSONObject(
+            //Log.d("HTTP_RESPONSE)", String.valueOf(httpResponse));//);
 
         } catch (Exception e) {
             Log.d("InputStream", e.getLocalizedMessage());
@@ -314,7 +330,8 @@ public class UserLocationActivity extends AppCompatActivity implements
     private class GetData extends AsyncTask<Void, Void, Void> {
 
         protected Void doInBackground(Void... params){
-            makeRequest(SERVER_ADDRESS);
+            String server_response = makeRequest(SERVER_ADDRESS + imageFileName + ".jpg");
+            Log.d("SERVER_RESPONSE", server_response);
             return null;
         }
     }
@@ -349,7 +366,7 @@ public class UserLocationActivity extends AppCompatActivity implements
             super.onPostExecute(aVoid);
             Toast.makeText(getApplicationContext(), "Image Uploaded", Toast.LENGTH_SHORT).show();
 
-            //new GetData().execute();
+            new GetData().execute();
         }
     }
 
@@ -408,7 +425,10 @@ public class UserLocationActivity extends AppCompatActivity implements
                 matrix.postRotate(90);
                 Bitmap displayImg = Bitmap.createBitmap(imgBitMap, 0, 0, imgBitMap.getWidth()/2, imgBitMap.getHeight());
                 ivImageToUpload.setImageBitmap(displayImg);
-
+            //Bitmap image = ((BitmapDrawable) ivImageToUpload.getDrawable()).getBitmap();
+            // make sure the file is just called "contrail_clip.jpg" for every picture
+            //new UploadImage(image, imageFileName).execute();
+            //new UploadImage(image, uploadImageName.getText().toString()).execute();
         } else if (resultCode == RESULT_CANCELED) {
             // User cancelled the image capture
         } else {
