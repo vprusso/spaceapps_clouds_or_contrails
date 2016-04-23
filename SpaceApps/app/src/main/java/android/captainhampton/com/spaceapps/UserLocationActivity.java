@@ -65,7 +65,7 @@ public class UserLocationActivity extends AppCompatActivity implements
     private double currentLongitude;
 
     private static final int RESULT_LOAD_IMAGE = 1;
-    private static final String SERVER_ADDRESS = "http://vprusso-spaceapps-beta.site88.net/";
+    private static final String SERVER_ADDRESS = "http://162.243.248.12:8081/?image=http://vprusso-spaceapps-beta.site88.net/pictures/";
 
     ImageView ivImageToUpload;
     Button bUploadImage;
