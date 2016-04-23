@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.net.Uri;
@@ -18,6 +20,7 @@ import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -33,6 +36,7 @@ import com.google.android.gms.location.LocationServices;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -63,25 +67,25 @@ public class UserLocationActivity extends AppCompatActivity implements
     private LocationRequest mLocationRequest;
     private double currentLatitude;
     private double currentLongitude;
-
+    private static final int REQUEST_TAKE_PHOTO = 1;
+    private String mCurrentPhotoPath, imgPhotoPath;
     private static final int RESULT_LOAD_IMAGE = 1;
     private static final String SERVER_ADDRESS = "http://vprusso-spaceapps-beta.site88.net/";
-
-    ImageView ivImageToUpload;
-    Button bUploadImage;
-    TextView tvUserLatitude, tvUserLongitude;
-
+    private ImageButton ibCloseBtn;
+    private ImageView ivImageToUpload;
+    private String imageFileName;
 
     public void setupVariables() {
         ivImageToUpload = (ImageView) findViewById(R.id.ivImageToUpload);
-        bUploadImage = (Button) findViewById(R.id.bUploadImage);
-        tvUserLatitude = (TextView) findViewById(R.id.tvUserLatitude);
-        tvUserLongitude = (TextView) findViewById(R.id.tvUserLongitude);
+        ibCloseBtn = (ImageButton) findViewById(R.id.ibCloseBtn);
+        //bUploadImage = (Button) findViewById(R.id.bUploadImage);
+        //tvUserLatitude = (TextView) findViewById(R.id.tvUserLatitude);
+        //tvUserLongitude = (TextView) findViewById(R.id.tvUserLongitude);
 
-        ivImageToUpload.setOnClickListener(this);
-        bUploadImage.setOnClickListener(this);
-        tvUserLongitude.setOnClickListener(this);
-        tvUserLatitude.setOnClickListener(this);
+        //ivImageToUpload.setOnClickListener(this);
+        //bUploadImage.setOnClickListener(this);
+        //tvUserLongitude.setOnClickListener(this);
+        //tvUserLatitude.setOnClickListener(this);
     }
 
     @Override
@@ -89,6 +93,14 @@ public class UserLocationActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_location);
         setupVariables();
+
+
+        ibCloseBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dispatchTakePictureIntent();
+            }
+        });
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 // The next two lines tell the new client that “this” current class will handle connection stuff
@@ -104,14 +116,7 @@ public class UserLocationActivity extends AppCompatActivity implements
                 .setInterval(10 * 1000)        // 10 seconds, in milliseconds
                 .setFastestInterval(1 * 1000); // 1 second, in milliseconds
 
-        // create Intent to take a picture and return control to the calling application
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-
-        fileUri = getOutputMediaFileUri(MEDIA_TYPE_IMAGE); // create a file to save the image
-        //intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri); // set the image file name
-
-        // start the image capture Intent
-        startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
+        dispatchTakePictureIntent();
 
     }
 
@@ -134,6 +139,42 @@ public class UserLocationActivity extends AppCompatActivity implements
         }
 
 
+    }
+
+    private File createImageFile() throws IOException {
+        imageFileName = "IMG_" + Double.toString(currentLatitude) + "_" + Double.toString(currentLongitude);
+        File storageDir = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        mCurrentPhotoPath = "file:" + image.getAbsolutePath();
+        Log.i("Main", mCurrentPhotoPath);
+        imgPhotoPath = image.getAbsolutePath();
+        return image;
+    }
+
+    private void dispatchTakePictureIntent() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            // Create the File where the photo should go
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                // Error occurred while creating the File
+                Log.d("Main", "Error occurred while creating the file ");
+            }
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
+                        Uri.fromFile(photoFile));
+                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+            }
+        }
     }
 
     /**
@@ -163,8 +204,8 @@ public class UserLocationActivity extends AppCompatActivity implements
             currentLongitude = location.getLongitude();
 
             Toast.makeText(this, currentLatitude + " WORKS " + currentLongitude + "", Toast.LENGTH_LONG).show();
-            tvUserLatitude.setText(Double.toString(currentLatitude));
-            tvUserLongitude.setText(Double.toString(currentLongitude));
+            //tvUserLatitude.setText(Double.toString(currentLatitude));
+            //tvUserLongitude.setText(Double.toString(currentLongitude));
         }
     }
 
@@ -213,13 +254,11 @@ public class UserLocationActivity extends AppCompatActivity implements
         currentLongitude = location.getLongitude();
 
         Toast.makeText(this, currentLatitude + " WORKS " + currentLongitude + "", Toast.LENGTH_LONG).show();
-        tvUserLatitude.setText(Double.toString(currentLatitude));
-        tvUserLongitude.setText(Double.toString(currentLongitude));
     }
 
     @Override
     public void onClick(View v) {
-        switch(v.getId()) {
+        /*switch(v.getId()) {
             case R.id.ivImageToUpload:
                 Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                 startActivityForResult(galleryIntent, RESULT_LOAD_IMAGE);
@@ -229,7 +268,7 @@ public class UserLocationActivity extends AppCompatActivity implements
                 new UploadImage(image, Double.toString(currentLatitude) + "_" + Double.toString(currentLongitude)).execute();
                 //new UploadImage(image, uploadImageName.getText().toString()).execute();
                 break;
-        }
+        }*/
     }
     private class UploadImage extends AsyncTask<Void, Void, Void> {
 
@@ -305,31 +344,29 @@ public class UserLocationActivity extends AppCompatActivity implements
         return mediaFile;
     }
 
-
-
-
-    private Uri fileUri;
-    private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
-    private static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
+        if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
                 // Image captured and saved to fileUri specified in the Intent
-                Toast.makeText(this, "Image saved to:\n" +
-                        data.getData(), Toast.LENGTH_LONG).show();
-            } else if (resultCode == RESULT_CANCELED) {
-                // User cancelled the image capture
-            } else {
-                // Image capture failed, advise user
-            }
+                //Toast.makeText(this, "Image saved to:\n" +
+                        //data.getData(), Toast.LENGTH_LONG).show();
+
+                Bitmap imgBitMap = BitmapFactory.decodeFile(imgPhotoPath);
+                Log.d("ERROR", imgPhotoPath);
+                Matrix matrix = new Matrix();
+                matrix.postRotate(90);
+                Bitmap displayImg = Bitmap.createBitmap(imgBitMap, 0, 0, imgBitMap.getWidth()/2, imgBitMap.getHeight());
+                ivImageToUpload.setImageBitmap(displayImg);
+
+        } else if (resultCode == RESULT_CANCELED) {
+            // User cancelled the image capture
+        } else {
+            // Image capture failed, advise user
         }
-        if (requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && data != null) {
+        /*if (requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && data != null) {
             Uri selectedImage = data.getData();
             ivImageToUpload.setImageURI(selectedImage);
-
-        }
+        }*/
     }
     // http://stackoverflow.com/questions/29536233/deprecated-http-classes-android-lollipop-5-1
     public String performPostCall(String requestURL, HashMap<String, String> postDataParams) {
