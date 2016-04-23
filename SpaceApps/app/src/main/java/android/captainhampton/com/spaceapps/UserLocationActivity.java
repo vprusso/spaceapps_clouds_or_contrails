@@ -33,10 +33,16 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -69,11 +75,10 @@ public class UserLocationActivity extends AppCompatActivity implements
     private double currentLongitude;
     private static final int REQUEST_TAKE_PHOTO = 1;
     private String mCurrentPhotoPath, imgPhotoPath;
-    private static final int RESULT_LOAD_IMAGE = 1;
-    private static final String SERVER_ADDRESS = "http://vprusso-spaceapps-beta.site88.net/";
     private ImageButton ibCloseBtn;
     private ImageView ivImageToUpload;
     private String imageFileName;
+    private static final String SERVER_ADDRESS = "http://162.243.248.12:8081/?image=http://vprusso-spaceapps-beta.site88.net/pictures/";
 
     public void setupVariables() {
         ivImageToUpload = (ImageView) findViewById(R.id.ivImageToUpload);
@@ -270,6 +275,50 @@ public class UserLocationActivity extends AppCompatActivity implements
                 break;
         }*/
     }
+
+    private String convertInputStreamToString(InputStream inputStream) throws IOException{
+        BufferedReader bufferedReader = new BufferedReader( new InputStreamReader(inputStream));
+        String line = "";
+        String result = "";
+        try {
+            while((line = bufferedReader.readLine()) != null){
+                result += line;
+            }
+        } catch (Exception e){
+            Toast.makeText(this, "InputStream Conversion Exception", Toast.LENGTH_SHORT).show();
+        }
+
+        inputStream.close();
+        return result;
+    }
+
+    public String makeRequest (String URL){
+        InputStream iStream = null;
+        String response = "";
+        HttpClient httpclient = new DefaultHttpClient();
+        HttpGet httpget = new HttpGet(URL);
+        try {
+            HttpResponse httpResponse = httpclient.execute(httpget);
+            iStream = httpResponse.getEntity().getContent();
+
+            if(iStream != null)
+                response = convertInputStreamToString(iStream);
+
+        } catch (Exception e) {
+            Log.d("InputStream", e.getLocalizedMessage());
+        }
+
+        return response;
+    }
+
+    private class GetData extends AsyncTask<Void, Void, Void> {
+
+        protected Void doInBackground(Void... params){
+            makeRequest(SERVER_ADDRESS);
+            return null;
+        }
+    }
+
     private class UploadImage extends AsyncTask<Void, Void, Void> {
 
         Bitmap image;
@@ -299,6 +348,8 @@ public class UserLocationActivity extends AppCompatActivity implements
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
             Toast.makeText(getApplicationContext(), "Image Uploaded", Toast.LENGTH_SHORT).show();
+
+            //new GetData().execute();
         }
     }
 
