@@ -365,25 +365,33 @@ public class UserLocationActivity extends AppCompatActivity implements
                         .add("image", encodedImage)
                         .add("name", name == null ? "duh" : name)
                         .build();
-            Request post_request = new Request.Builder()
-                    .url(SERVER_POST_ADDRESS)
-                    .post(formBody)
-                    .build();
+            Boolean exit = false;
+            for (int i = 0; i < 5 && !exit; i++){
+                Request post_request = new Request.Builder()
+                        .url(SERVER_POST_ADDRESS)
+                        .post(formBody)
+                        .build();
+
+                Response post_response = null;
+                try {
+                    post_response = client.newCall(post_request).execute();
+                    String post_respStr = post_response.body().string();
+                    Log.d("POST_RESPONSE", post_respStr);
+                    exit = true;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
 
             Request get_request = new Request.Builder()
-                    .url(SERVER_GET_ADDRESS + imageFileName + "_gibberish.jpg")
+                    .url(SERVER_GET_ADDRESS + imageFileName + ".JPG")
+                    //.url("http://162.243.248.12:8081/?image=http://vprusso-spaceapps-beta.site88.net/pictures/IMG_43.4509684_-80.4977896.JPG")
                     .get()
                     .build();
 
-            Response post_response = null;
-            try {
-                post_response = client.newCall(post_request).execute();
-                String post_respStr = post_response.body().string();
-                Log.d("POST_RESPONSE", post_respStr);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            Log.d("GET_URL", SERVER_GET_ADDRESS + imageFileName + "_gibberish.jpg");
+
+            Log.d("GET_URL", SERVER_GET_ADDRESS + imageFileName + ".JPG");
             Response get_response = null;
             try {
                 get_response = client.newCall(get_request).execute();
@@ -458,12 +466,18 @@ public class UserLocationActivity extends AppCompatActivity implements
                 Log.d("ERROR", imgPhotoPath);
                 Matrix matrix = new Matrix();
                 matrix.postRotate(90);
+            try{
                 Bitmap displayImg = Bitmap.createBitmap(imgBitMap, 0, 0, imgBitMap.getWidth()/2, imgBitMap.getHeight());
                 ivImageToUpload.setImageBitmap(displayImg);
-            Bitmap image = ((BitmapDrawable) ivImageToUpload.getDrawable()).getBitmap();
-            // make sure the file is just called "contrail_clip.jpg" for every picture
-            new UploadImage(image, imageFileName + "_gibberish").execute();
-            //new UploadImage(image, uploadImageName.getText().toString()).execute();
+                Bitmap image = ((BitmapDrawable) ivImageToUpload.getDrawable()).getBitmap();
+                // make sure the file is just called "contrail_clip.jpg" for every picture
+                new UploadImage(image, imageFileName).execute();
+                //new UploadImage(image, uploadImageName.getText().toString()).execute();
+            } catch (NullPointerException e){
+                Log.e("Bitmap_Error", "Bitmap Null Pointer");
+                dispatchTakePictureIntent();
+            }
+
         } else if (resultCode == RESULT_CANCELED) {
             // User cancelled the image capture
         } else {
