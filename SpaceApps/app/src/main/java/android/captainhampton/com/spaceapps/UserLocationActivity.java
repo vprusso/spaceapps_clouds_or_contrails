@@ -51,8 +51,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -512,8 +514,12 @@ public class UserLocationActivity extends AppCompatActivity implements
 
     private void parseFlightAPIJSON(String response) throws JSONException{
         JSONObject obj = new JSONObject(response);
-        String jarry = obj.getJSONArray("flightPositions").getJSONObject(0).getString("flightId");
-        tvAPIResponse.setText(jarry);
+        JSONArray arr = obj.getJSONArray("flightPositions");
+        List<String> fids = new ArrayList<String>();
+        for(int i=0; i < arr.length(); i++) {
+            fids.add(arr.getJSONObject(i).getString("callsign"));
+        }
+        //tvAPIResponse.setText(fids.toString());
     }
 
 
