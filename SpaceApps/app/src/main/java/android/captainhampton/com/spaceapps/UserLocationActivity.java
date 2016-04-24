@@ -447,7 +447,9 @@ public class UserLocationActivity extends AppCompatActivity implements
             //super.onPostExecute(aVoid);
             Toast.makeText(getApplicationContext(), "Image Uploaded", Toast.LENGTH_SHORT).show();
             try {
-                parseWatsonData(response);
+                if(response != null) {
+                    parseWatsonData(response);
+                }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -581,6 +583,7 @@ public class UserLocationActivity extends AppCompatActivity implements
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        tvChances.setText("Contrail Probability: ");
         if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
                 // Image captured and saved to fileUri specified in the Intent
                 //Toast.makeText(this, "Image saved to:\n" +
@@ -674,5 +677,9 @@ public class UserLocationActivity extends AppCompatActivity implements
         return result.toString();
     }
 
+    public void launchList (View view){
+        Intent intent = new Intent(this, FlightActivity.class);
+        startActivity(intent);
+    }
 
 }
