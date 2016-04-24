@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -19,6 +20,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,6 +31,8 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -47,7 +51,8 @@ import java.util.Map;
 
 
 import java.io.File;
-
+import org.json.*;
+import java.io.IOException;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -64,6 +69,9 @@ public class UserLocationActivity extends AppCompatActivity implements
     private double currentLatitude;
     private double currentLongitude;
 
+    private ProgressBar pbAPIProgressBar = null;
+    private TextView tvAPIResponse;
+
     private static final int RESULT_LOAD_IMAGE = 1;
     private static final String SERVER_ADDRESS = "http://vprusso-spaceapps-beta.site88.net/";
 
@@ -72,16 +80,21 @@ public class UserLocationActivity extends AppCompatActivity implements
     TextView tvUserLatitude, tvUserLongitude;
 
 
+
     public void setupVariables() {
         ivImageToUpload = (ImageView) findViewById(R.id.ivImageToUpload);
         bUploadImage = (Button) findViewById(R.id.bUploadImage);
         tvUserLatitude = (TextView) findViewById(R.id.tvUserLatitude);
         tvUserLongitude = (TextView) findViewById(R.id.tvUserLongitude);
+        tvAPIResponse = (TextView) findViewById(R.id.tvAPIResponse);
+        pbAPIProgressBar = (ProgressBar) findViewById(R.id.pbAPIProgressBar);
 
         ivImageToUpload.setOnClickListener(this);
         bUploadImage.setOnClickListener(this);
         tvUserLongitude.setOnClickListener(this);
         tvUserLatitude.setOnClickListener(this);
+        tvAPIResponse.setOnClickListener(this);
+        pbAPIProgressBar.setOnClickListener(this);
     }
 
     @Override
@@ -104,6 +117,17 @@ public class UserLocationActivity extends AppCompatActivity implements
                 .setInterval(10 * 1000)        // 10 seconds, in milliseconds
                 .setFastestInterval(1 * 1000); // 1 second, in milliseconds
 
+        pbAPIProgressBar.setVisibility(View.INVISIBLE);
+
+        /*
+        Intent flightIntent = new Intent(this, RetrieveFlightData.class);
+        startActivity(flightIntent);
+        Bundle extras = new Bundle();
+        extras.putString("EXTRA_LATITUDE",Double.toString(currentLatitude));
+        extras.putString("EXTRA_LONGITUDE",Double.toString(currentLongitude));
+        flightIntent.putExtras(extras);
+        startActivity(flightIntent);
+        */
         // create Intent to take a picture and return control to the calling application
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
@@ -112,6 +136,7 @@ public class UserLocationActivity extends AppCompatActivity implements
 
         // start the image capture Intent
         startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
+
 
     }
 
@@ -228,6 +253,7 @@ public class UserLocationActivity extends AppCompatActivity implements
                 Bitmap image = ((BitmapDrawable) ivImageToUpload.getDrawable()).getBitmap();
                 new UploadImage(image, Double.toString(currentLatitude) + "_" + Double.toString(currentLongitude)).execute();
                 //new UploadImage(image, uploadImageName.getText().toString()).execute();
+                new RetrieveFlightData().execute();
                 break;
         }
     }
@@ -239,6 +265,11 @@ public class UserLocationActivity extends AppCompatActivity implements
         public UploadImage(Bitmap image, String name) {
             this.image = image;
             this.name = name;
+        }
+
+        protected void onPreExecute() {
+            pbAPIProgressBar.setVisibility(View.VISIBLE);
+            tvAPIResponse.setText("");
         }
 
         @Override
@@ -253,15 +284,87 @@ public class UserLocationActivity extends AppCompatActivity implements
             dataToSend2.put("name", name);
 
             performPostCall(SERVER_ADDRESS + "SavePicture.php", dataToSend2);
+
+
             return null;
         }
+
 
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
             Toast.makeText(getApplicationContext(), "Image Uploaded", Toast.LENGTH_SHORT).show();
+            pbAPIProgressBar.setVisibility(View.INVISIBLE);
         }
     }
+
+
+    private class RetrieveFlightData extends AsyncTask<Void, Void, String> {
+
+        protected void onPreExecute() {
+            pbAPIProgressBar.setVisibility(View.VISIBLE);
+            tvAPIResponse.setText("");
+        }
+
+        protected String doInBackground(Void... urls) {
+            // Do some validation here
+            //tvAPIResponse = UserLocationActivity.tvAPIResponse;
+            //pbAPIProgressBar = UserLocationActivity.pbAPIProgressBar;
+            //Intent intent = .getIntent();
+            //Bundle extras = intent.getExtras();
+            //String latitude = extras.getString("EXTRA_LATITUDE");
+            //String longitude = extras.getString("EXTRA_LONGITUDE");
+            try {
+                URL url = new URL("https://api.flightstats.com/flex/flightstatus/rest/v2/json/flightsNear/"+currentLatitude+"/"+currentLongitude+"/150?appId=a0a78d45&appKey=75ac6775c40728cb09c50b6ec5f4d39c&maxFlights=999");
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                try {
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(line).append("\n");
+                    }
+                    bufferedReader.close();
+                    return stringBuilder.toString();
+                }
+                finally{
+                    urlConnection.disconnect();
+                }
+            }
+            catch(Exception e) {
+                Log.e("ERROR", e.getMessage(), e);
+                return null;
+            }
+        }
+
+        protected void onPostExecute(String response) {
+            if(response == null) {
+                response = "THERE WAS AN ERROR";
+            }
+            pbAPIProgressBar.setVisibility(View.GONE);
+            Log.i("INFO", response);
+            tvAPIResponse.setText(response);
+            parseFlightAPIJSON(response);
+        }
+    }
+
+    private Void parseFlightAPIJSON(String response) {
+        try {
+            JSONObject obj = new JSONObject(response);
+            String flight_id = obj.getString("flightID");
+            System.out.println(flight_id);
+            //for(int i=0; i < obj.length(); i++) {
+            //    String flight_id = obj.getJSONObject(i).getString("flightID");
+            //    System.out.println(flight_id);
+            //}
+        } catch (JSONException e) {
+            Log.e("MYAPP", "unexpected JSON exception", e);
+            // Do something to recover ... or kill the app.
+        }
+
+        return null;
+    }
+
 
     public static final int MEDIA_TYPE_IMAGE = 1;
     public static final int MEDIA_TYPE_VIDEO = 2;
@@ -310,7 +413,6 @@ public class UserLocationActivity extends AppCompatActivity implements
 
     private Uri fileUri;
     private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
-    private static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -391,5 +493,6 @@ public class UserLocationActivity extends AppCompatActivity implements
 
         return result.toString();
     }
+
 
 }
