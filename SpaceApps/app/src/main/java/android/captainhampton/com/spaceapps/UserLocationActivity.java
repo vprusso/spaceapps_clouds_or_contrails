@@ -19,7 +19,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -33,15 +32,10 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -56,11 +50,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-
-import java.io.File;
-
-
 import javax.net.ssl.HttpsURLConnection;
+
+import okhttp3.FormBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class UserLocationActivity extends AppCompatActivity implements
         ConnectionCallbacks,
@@ -79,11 +75,15 @@ public class UserLocationActivity extends AppCompatActivity implements
     private ImageButton ibCloseBtn;
     private ImageView ivImageToUpload;
     private String imageFileName;
-    private static final String SERVER_ADDRESS = "http://162.243.248.12:8081/?image=http://vprusso-spaceapps-beta.site88.net/pictures/";
-
+    private TextView tvChances;
+    //private static final String SERVER_ADDRESS = "http://162.243.248.12:8081/?image=http://vprusso-spaceapps-beta.site88.net/pictures/";
+    //private static final String SERVER_ADDRESS = "http://vprusso-spaceapps-beta.site88.net/";
+    private static final String SERVER_POST_ADDRESS = "http://vprusso-spaceapps-beta.site88.net/SavePicture.php";
+    private static final String SERVER_GET_ADDRESS = "http://162.243.248.12:8081/?image=http://vprusso-spaceapps-beta.site88.net/pictures/";
     public void setupVariables() {
         ivImageToUpload = (ImageView) findViewById(R.id.ivImageToUpload);
         ibCloseBtn = (ImageButton) findViewById(R.id.ibCloseBtn);
+        tvChances = (TextView) findViewById(R.id.tvChances);
         //bUploadImage = (Button) findViewById(R.id.bUploadImage);
         //tvUserLatitude = (TextView) findViewById(R.id.tvUserLatitude);
         //tvUserLongitude = (TextView) findViewById(R.id.tvUserLongitude);
@@ -277,7 +277,7 @@ public class UserLocationActivity extends AppCompatActivity implements
         }*/
     }
 
-    private String convertInputStreamToString(InputStream inputStream) throws IOException{
+    /*private String convertInputStreamToString(InputStream inputStream) throws IOException{
         BufferedReader bufferedReader = new BufferedReader( new InputStreamReader(inputStream));
         String line = "";
         String result = "";
@@ -291,7 +291,9 @@ public class UserLocationActivity extends AppCompatActivity implements
 
         inputStream.close();
         return result;
-        /*HttpResponse response; // some response object
+
+
+        HttpResponse response; // some response object
         BufferedReader reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
         StringBuilder builder = new StringBuilder();
         for (String line = null; (line = reader.readLine()) != null;) {
@@ -302,8 +304,10 @@ public class UserLocationActivity extends AppCompatActivity implements
 
         } catch (Exception e) {
             JSONArray finalResult = new JSONArray(tokener);
-        }*/
+        }
         //return null;
+
+
     }
 
     public String makeRequest (String URL){
@@ -334,7 +338,7 @@ public class UserLocationActivity extends AppCompatActivity implements
             Log.d("SERVER_RESPONSE", server_response);
             return null;
         }
-    }
+    }*/
 
     private class UploadImage extends AsyncTask<Void, Void, Void> {
 
@@ -352,12 +356,43 @@ public class UserLocationActivity extends AppCompatActivity implements
             image.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
             String encodedImage = Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
 
-
-            HashMap<String, String> dataToSend2 = new HashMap<>();
+            OkHttpClient client = new OkHttpClient();
+            Log.e("xxx", encodedImage);
+            /*HashMap<String, String> dataToSend2 = new HashMap<>();
             dataToSend2.put("image", encodedImage);
-            dataToSend2.put("name", name);
+            dataToSend2.put("name", name);*/
+                RequestBody formBody = new FormBody.Builder()
+                        .add("image", encodedImage)
+                        .add("name", name == null ? "duh" : name)
+                        .build();
+            Request post_request = new Request.Builder()
+                    .url(SERVER_POST_ADDRESS)
+                    .post(formBody)
+                    .build();
 
-            performPostCall(SERVER_ADDRESS + "SavePicture.php", dataToSend2);
+            Request get_request = new Request.Builder()
+                    .url(SERVER_GET_ADDRESS + imageFileName + "_gibberish.jpg")
+                    .get()
+                    .build();
+
+            Response post_response = null;
+            try {
+                post_response = client.newCall(post_request).execute();
+                String post_respStr = post_response.body().string();
+                Log.d("POST_RESPONSE", post_respStr);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            Log.d("GET_URL", SERVER_GET_ADDRESS + imageFileName + "_gibberish.jpg");
+            Response get_response = null;
+            try {
+                get_response = client.newCall(get_request).execute();
+                String get_respStr = get_response.body().string();
+                Log.d("GET_RESPONSE", get_respStr);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            //performPostCall(SERVER_ADDRESS + "SavePicture.php", dataToSend2);
             return null;
         }
 
@@ -366,19 +401,19 @@ public class UserLocationActivity extends AppCompatActivity implements
             super.onPostExecute(aVoid);
             Toast.makeText(getApplicationContext(), "Image Uploaded", Toast.LENGTH_SHORT).show();
 
-            new GetData().execute();
+            //new GetData().execute();
         }
     }
 
-    public static final int MEDIA_TYPE_IMAGE = 1;
+    /*public static final int MEDIA_TYPE_IMAGE = 1;
     public static final int MEDIA_TYPE_VIDEO = 2;
 
-    /** Create a file Uri for saving an image or video */
+    //Create a file Uri for saving an image or video
     private static Uri getOutputMediaFileUri(int type){
         return Uri.fromFile(getOutputMediaFile(type));
     }
 
-    /** Create a File for saving an image or video */
+    //Create a File for saving an image or video
     private static File getOutputMediaFile(int type){
         // To be safe, you should check that the SDCard is mounted
         // using Environment.getExternalStorageState() before doing this.
@@ -410,7 +445,7 @@ public class UserLocationActivity extends AppCompatActivity implements
         }
 
         return mediaFile;
-    }
+    }*/
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -425,9 +460,9 @@ public class UserLocationActivity extends AppCompatActivity implements
                 matrix.postRotate(90);
                 Bitmap displayImg = Bitmap.createBitmap(imgBitMap, 0, 0, imgBitMap.getWidth()/2, imgBitMap.getHeight());
                 ivImageToUpload.setImageBitmap(displayImg);
-            //Bitmap image = ((BitmapDrawable) ivImageToUpload.getDrawable()).getBitmap();
+            Bitmap image = ((BitmapDrawable) ivImageToUpload.getDrawable()).getBitmap();
             // make sure the file is just called "contrail_clip.jpg" for every picture
-            //new UploadImage(image, imageFileName).execute();
+            new UploadImage(image, imageFileName + "_gibberish").execute();
             //new UploadImage(image, uploadImageName.getText().toString()).execute();
         } else if (resultCode == RESULT_CANCELED) {
             // User cancelled the image capture
