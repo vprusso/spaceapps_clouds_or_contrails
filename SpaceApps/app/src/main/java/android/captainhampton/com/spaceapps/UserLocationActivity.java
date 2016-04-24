@@ -51,8 +51,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -78,11 +80,12 @@ public class UserLocationActivity extends AppCompatActivity implements
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
+    public static List<String> callSigns;
     private double currentLatitude;
     private double currentLongitude;
-    private static final int REQUEST_TAKE_PHOTO = 1;
+    private static final int REQUEST_TAKE_PHOTO = 1, REQUEST_FLIGHT_INFO = 0;
     private String mCurrentPhotoPath, imgPhotoPath;
-    private ImageButton ibCloseBtn;
+    private ImageButton ibCloseBtn, ibInfoBtn;
     private ImageView ivImageToUpload;
     private String imageFileName;
     private TextView tvChances;
@@ -90,14 +93,14 @@ public class UserLocationActivity extends AppCompatActivity implements
     private static final String SERVER_GET_ADDRESS = "http://162.243.248.12:8081/?image=http://vprusso-spaceapps-beta.site88.net/pictures/";
 
     private ProgressBar pbAPIProgressBar = null;
-    private TextView tvAPIResponse;
 
     public void setupVariables() {
         ivImageToUpload = (ImageView) findViewById(R.id.ivImageToUpload);
         ibCloseBtn = (ImageButton) findViewById(R.id.ibCloseBtn);
+        ibInfoBtn = (ImageButton) findViewById(R.id.ibInfoBtn);
         tvChances = (TextView) findViewById(R.id.tvChances);
-        tvAPIResponse = (TextView) findViewById(R.id.tvAPIResponse);
         pbAPIProgressBar = (ProgressBar) findViewById(R.id.pbAPIProgressBar);
+        callSigns = new ArrayList<String>();
     }
 
     @Override
@@ -111,6 +114,13 @@ public class UserLocationActivity extends AppCompatActivity implements
             @Override
             public void onClick(View v) {
                 dispatchTakePictureIntent();
+            }
+        });
+
+        ibInfoBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LaunchFlightInfo(v);
             }
         });
 
@@ -382,7 +392,6 @@ public class UserLocationActivity extends AppCompatActivity implements
 
         protected void onPreExecute() {
             pbAPIProgressBar.setVisibility(View.VISIBLE);
-            tvAPIResponse.setText("");
         }
 
         @Override
@@ -463,7 +472,6 @@ public class UserLocationActivity extends AppCompatActivity implements
 
         protected void onPreExecute() {
             pbAPIProgressBar.setVisibility(View.VISIBLE);
-            tvAPIResponse.setText("");
         }
 
         protected String doInBackground(Void... urls) {
@@ -503,7 +511,6 @@ public class UserLocationActivity extends AppCompatActivity implements
             }
             pbAPIProgressBar.setVisibility(View.GONE);
             Log.i("INFO", response);
-            tvAPIResponse.setText(response);
             try {
                 parseFlightAPIJSON(response);
             } catch (JSONException e) {
@@ -514,8 +521,10 @@ public class UserLocationActivity extends AppCompatActivity implements
 
     private void parseFlightAPIJSON(String response) throws JSONException{
         JSONObject obj = new JSONObject(response);
-        String jarry = obj.getJSONArray("flightPositions").getJSONObject(0).getString("flightId");
-        tvAPIResponse.setText(jarry);
+        JSONArray arr = obj.getJSONArray("flightPositions");
+        for(int i=0; i < arr.length(); i++) {
+            callSigns.add(arr.getJSONObject(i).getString("callsign"));
+        }
     }
 
 
@@ -677,9 +686,9 @@ public class UserLocationActivity extends AppCompatActivity implements
         return result.toString();
     }
 
-    public void launchList (View view){
+    public void LaunchFlightInfo (View view){
         Intent intent = new Intent(this, FlightActivity.class);
-        startActivity(intent);
+        startActivityForResult(intent, REQUEST_FLIGHT_INFO);
     }
 
 }

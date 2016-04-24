@@ -25,7 +25,11 @@
         </activity>
         <activity
             android:name=".FlightActivity"
-            android:label="@string/title_activity_flight" >
+            android:label="@string/title_activity_flight"
+            android:parentActivityName=".UserLocationActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".UserLocationActivity" />
         </activity>
     </application>
 

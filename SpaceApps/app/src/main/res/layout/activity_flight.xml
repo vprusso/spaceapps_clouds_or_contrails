@@ -16,4 +16,13 @@
         android:layout_height="wrap_content" >
     </ExpandableListView>
 
+    <!--<ImageButton
+        android:src="@mipmap/ic_close_black_24dp"
+        android:layout_width="58dp"
+        android:layout_height="48dp"
+        android:id="@+id/ibCloseBtn"
+        android:background="@android:color/transparent"
+        android:layout_alignParentTop="true"
+        android:layout_alignEnd="@+id/listView" />-->
+
 </LinearLayout> 
