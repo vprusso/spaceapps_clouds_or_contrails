@@ -13,14 +13,17 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,6 +34,8 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -49,6 +54,11 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+
+import java.io.File;
+import org.json.*;
+import java.io.IOException;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -76,22 +86,18 @@ public class UserLocationActivity extends AppCompatActivity implements
     private ImageView ivImageToUpload;
     private String imageFileName;
     private TextView tvChances;
-    //private static final String SERVER_ADDRESS = "http://162.243.248.12:8081/?image=http://vprusso-spaceapps-beta.site88.net/pictures/";
-    //private static final String SERVER_ADDRESS = "http://vprusso-spaceapps-beta.site88.net/";
     private static final String SERVER_POST_ADDRESS = "http://vprusso-spaceapps-beta.site88.net/SavePicture.php";
     private static final String SERVER_GET_ADDRESS = "http://162.243.248.12:8081/?image=http://vprusso-spaceapps-beta.site88.net/pictures/";
+
+    private ProgressBar pbAPIProgressBar = null;
+    private TextView tvAPIResponse;
+
     public void setupVariables() {
         ivImageToUpload = (ImageView) findViewById(R.id.ivImageToUpload);
         ibCloseBtn = (ImageButton) findViewById(R.id.ibCloseBtn);
         tvChances = (TextView) findViewById(R.id.tvChances);
-        //bUploadImage = (Button) findViewById(R.id.bUploadImage);
-        //tvUserLatitude = (TextView) findViewById(R.id.tvUserLatitude);
-        //tvUserLongitude = (TextView) findViewById(R.id.tvUserLongitude);
-
-        //ivImageToUpload.setOnClickListener(this);
-        //bUploadImage.setOnClickListener(this);
-        //tvUserLongitude.setOnClickListener(this);
-        //tvUserLatitude.setOnClickListener(this);
+        tvAPIResponse = (TextView) findViewById(R.id.tvAPIResponse);
+        pbAPIProgressBar = (ProgressBar) findViewById(R.id.pbAPIProgressBar);
     }
 
     @Override
@@ -122,7 +128,30 @@ public class UserLocationActivity extends AppCompatActivity implements
                 .setInterval(10 * 1000)        // 10 seconds, in milliseconds
                 .setFastestInterval(1 * 1000); // 1 second, in milliseconds
 
+
+        pbAPIProgressBar.setVisibility(View.INVISIBLE);
+
         dispatchTakePictureIntent();
+
+        /*
+        Intent flightIntent = new Intent(this, RetrieveFlightData.class);
+        startActivity(flightIntent);
+        Bundle extras = new Bundle();
+        extras.putString("EXTRA_LATITUDE",Double.toString(currentLatitude));
+        extras.putString("EXTRA_LONGITUDE",Double.toString(currentLongitude));
+        flightIntent.putExtras(extras);
+        startActivity(flightIntent);
+        */
+        /*
+        // create Intent to take a picture and return control to the calling application
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+        //fileUri = getOutputMediaFileUri(MEDIA_TYPE_IMAGE); // create a file to save the image
+        //intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri); // set the image file name
+
+        // start the image capture Intent
+        startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);*/
+
 
     }
 
@@ -273,6 +302,7 @@ public class UserLocationActivity extends AppCompatActivity implements
                 Bitmap image = ((BitmapDrawable) ivImageToUpload.getDrawable()).getBitmap();
                 new UploadImage(image, Double.toString(currentLatitude) + "_" + Double.toString(currentLongitude)).execute();
                 //new UploadImage(image, uploadImageName.getText().toString()).execute();
+                new RetrieveFlightData().execute();
                 break;
         }*/
     }
@@ -340,7 +370,7 @@ public class UserLocationActivity extends AppCompatActivity implements
         }
     }*/
 
-    private class UploadImage extends AsyncTask<Void, Void, Void> {
+    private class UploadImage extends AsyncTask<Void, Void, String> {
 
         Bitmap image;
         String name;
@@ -350,8 +380,13 @@ public class UserLocationActivity extends AppCompatActivity implements
             this.name = name;
         }
 
+        protected void onPreExecute() {
+            pbAPIProgressBar.setVisibility(View.VISIBLE);
+            tvAPIResponse.setText("");
+        }
+
         @Override
-        protected Void doInBackground(Void... params) {
+        protected String doInBackground(Void... params) {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             image.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
             String encodedImage = Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
@@ -383,7 +418,6 @@ public class UserLocationActivity extends AppCompatActivity implements
                 }
             }
 
-
             Request get_request = new Request.Builder()
                     .url(SERVER_GET_ADDRESS + imageFileName + ".JPG")
                     //.url("http://162.243.248.12:8081/?image=http://vprusso-spaceapps-beta.site88.net/pictures/IMG_43.4509684_-80.4977896.JPG")
@@ -397,20 +431,103 @@ public class UserLocationActivity extends AppCompatActivity implements
                 get_response = client.newCall(get_request).execute();
                 String get_respStr = get_response.body().string();
                 Log.d("GET_RESPONSE", get_respStr);
+                return get_respStr;
             } catch (IOException e) {
                 e.printStackTrace();
             }
             //performPostCall(SERVER_ADDRESS + "SavePicture.php", dataToSend2);
+            //performPostCall(SERVER_ADDRESS + "SavePicture.php", dataToSend2);
+
             return null;
         }
 
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-            Toast.makeText(getApplicationContext(), "Image Uploaded", Toast.LENGTH_SHORT).show();
 
+        @Override
+        protected void onPostExecute(String response) {
+            //super.onPostExecute(aVoid);
+            Toast.makeText(getApplicationContext(), "Image Uploaded", Toast.LENGTH_SHORT).show();
+            try {
+                parseWatsonData(response);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
             //new GetData().execute();
+            pbAPIProgressBar.setVisibility(View.INVISIBLE);
         }
+    }
+
+
+    private class RetrieveFlightData extends AsyncTask<Void, Void, String> {
+
+        protected void onPreExecute() {
+            pbAPIProgressBar.setVisibility(View.VISIBLE);
+            tvAPIResponse.setText("");
+        }
+
+        protected String doInBackground(Void... urls) {
+            // Do some validation here
+            //tvAPIResponse = UserLocationActivity.tvAPIResponse;
+            //pbAPIProgressBar = UserLocationActivity.pbAPIProgressBar;
+            //Intent intent = .getIntent();
+            //Bundle extras = intent.getExtras();
+            //String latitude = extras.getString("EXTRA_LATITUDE");
+            //String longitude = extras.getString("EXTRA_LONGITUDE");
+            try {
+                URL url = new URL("https://api.flightstats.com/flex/flightstatus/rest/v2/json/flightsNear/"+currentLatitude+"/"+currentLongitude+"/150?appId=a0a78d45&appKey=75ac6775c40728cb09c50b6ec5f4d39c&maxFlights=999");
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                try {
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(line).append("\n");
+                    }
+                    bufferedReader.close();
+                    return stringBuilder.toString();
+                }
+                finally{
+                    urlConnection.disconnect();
+                }
+            }
+            catch(Exception e) {
+                Log.e("ERROR", e.getMessage(), e);
+                return null;
+            }
+        }
+
+        protected void onPostExecute(String response) {
+            if(response == null) {
+                response = "THERE WAS AN ERROR";
+            }
+            pbAPIProgressBar.setVisibility(View.GONE);
+            Log.i("INFO", response);
+            tvAPIResponse.setText(response);
+            try {
+                parseFlightAPIJSON(response);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void parseFlightAPIJSON(String response) throws JSONException{
+        JSONObject obj = new JSONObject(response);
+        String jarry = obj.getJSONArray("flightPositions").getJSONObject(0).getString("flightId");
+        tvAPIResponse.setText(jarry);
+    }
+
+
+    private void parseWatsonData(String response) throws JSONException {
+        String contrail_probability = "";
+        JSONObject respObj = new JSONObject(response);
+        JSONArray respArr = respObj.getJSONArray("images");
+        if (!respArr.getJSONObject(0).has("scores")){
+            contrail_probability = "0";
+        } else {
+            JSONArray resp_scoreArr = respArr.getJSONObject(0).getJSONArray("scores");
+            contrail_probability = Double.toString(Math.round(resp_scoreArr.getJSONObject(0).getDouble("score") * 100.0));
+        }
+        tvChances.setText("Contrail Probability: " + contrail_probability + " %");
     }
 
     /*public static final int MEDIA_TYPE_IMAGE = 1;
@@ -453,7 +570,14 @@ public class UserLocationActivity extends AppCompatActivity implements
         }
 
         return mediaFile;
+<<<<<<< HEAD
     }*/
+
+
+
+
+    private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -473,6 +597,7 @@ public class UserLocationActivity extends AppCompatActivity implements
                 // make sure the file is just called "contrail_clip.jpg" for every picture
                 new UploadImage(image, imageFileName).execute();
                 //new UploadImage(image, uploadImageName.getText().toString()).execute();
+                new RetrieveFlightData().execute();
             } catch (NullPointerException e){
                 Log.e("Bitmap_Error", "Bitmap Null Pointer");
                 dispatchTakePictureIntent();
@@ -548,5 +673,6 @@ public class UserLocationActivity extends AppCompatActivity implements
 
         return result.toString();
     }
+
 
 }

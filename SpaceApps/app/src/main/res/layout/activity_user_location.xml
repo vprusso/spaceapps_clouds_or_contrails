@@ -19,9 +19,9 @@
         android:layout_alignEnd="@+id/ivImageToUpload" />
 
     <ImageView
-            android:layout_width="366dp"
-            android:layout_height="366dp"
-            android:id="@+id/ivImageToUpload"
+        android:layout_width="366dp"
+        android:layout_height="366dp"
+        android:id="@+id/ivImageToUpload"
         android:layout_gravity="center"
         android:layout_below="@+id/ibCloseBtn"
         android:layout_alignParentStart="true"
@@ -31,10 +31,25 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New Text"
+        android:text="Contrail Probability: "
         android:id="@+id/tvChances"
         android:layout_alignParentEnd="true"
         android:layout_alignBottom="@+id/ivImageToUpload"
         android:layout_alignParentStart="true" />
+
+
+    <ProgressBar
+        android:id="@+id/pbAPIProgressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        android:layout_centerHorizontal="true"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvAPIResponse"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
 
 </RelativeLayout>
