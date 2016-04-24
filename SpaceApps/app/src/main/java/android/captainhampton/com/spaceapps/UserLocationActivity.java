@@ -366,6 +366,18 @@ public class UserLocationActivity extends AppCompatActivity implements
     }
 
 
+    private void parseWatsonData(String response) throws JSONException {
+        String contrail_probability = "";
+        JSONObject respObj = new JSONObject(response);
+        JSONArray respArr = respObj.getJSONArray("images");
+        if (respArr.length() <= 1){
+            contrail_probability = "0 %";
+        } else {
+            JSONArray resp_scoreArr = respArr.getJSONArray(1);
+            contrail_probability = Double.toString(resp_scoreArr.getJSONObject(2).getInt("score") * 100.0);
+        }
+    }
+
     public static final int MEDIA_TYPE_IMAGE = 1;
     public static final int MEDIA_TYPE_VIDEO = 2;
 
