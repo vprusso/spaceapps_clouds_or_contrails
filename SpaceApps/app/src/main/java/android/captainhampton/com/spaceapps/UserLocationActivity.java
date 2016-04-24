@@ -344,25 +344,18 @@ public class UserLocationActivity extends AppCompatActivity implements
             pbAPIProgressBar.setVisibility(View.GONE);
             Log.i("INFO", response);
             tvAPIResponse.setText(response);
-            parseFlightAPIJSON(response);
+            try {
+                parseFlightAPIJSON(response);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
     }
 
-    private Void parseFlightAPIJSON(String response) {
-        try {
-            JSONObject obj = new JSONObject(response);
-            String flight_id = obj.getString("flightID");
-            System.out.println(flight_id);
-            //for(int i=0; i < obj.length(); i++) {
-            //    String flight_id = obj.getJSONObject(i).getString("flightID");
-            //    System.out.println(flight_id);
-            //}
-        } catch (JSONException e) {
-            Log.e("MYAPP", "unexpected JSON exception", e);
-            // Do something to recover ... or kill the app.
-        }
-
-        return null;
+    private void parseFlightAPIJSON(String response) throws JSONException{
+        JSONObject obj = new JSONObject(response);
+        String jarry = obj.getJSONArray("flightPositions").getJSONObject(0).getString("flightId");
+        tvAPIResponse.setText(jarry);
     }
 
 
