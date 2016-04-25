@@ -17,7 +17,7 @@ import java.util.List;
 public class FlightActivity extends AppCompatActivity {
 
     SparseArray<Group> groups = new SparseArray<Group>();
-    List<String> callSigns;
+    List<String> callsignArr, headingArr, lonArr, latArr, altitudeArr;
     //private ImageButton ibCloseBtn;
 
     @Override
@@ -33,7 +33,12 @@ public class FlightActivity extends AppCompatActivity {
             }
         });*/
 
-        callSigns = UserLocationActivity.callSigns;
+        callsignArr = UserLocationActivity.callsignArr;
+        headingArr = UserLocationActivity.headingArr;
+        lonArr = UserLocationActivity.lonArr;
+        latArr = UserLocationActivity.latArr;
+        altitudeArr = UserLocationActivity.altitudeArr;
+
         insertData();
         ExpandableListView listView = (ExpandableListView) findViewById(R.id.listView);
         ExpandableListAdapter adapter = new ExpandableListAdapter(this,
@@ -43,10 +48,11 @@ public class FlightActivity extends AppCompatActivity {
 
     public void insertData() {
         for (int j = 0; j < 5; j++) {
-            Group group = new Group(callSigns.get(j));
-            for (int i = 0; i < 5; i++) {
-                group.children.add("Sub Item" + i);
-            }
+            Group group = new Group("Call Sign: " + callsignArr.get(j));
+            group.children.add("Heading: " + headingArr.get(j));
+            group.children.add("Longtitude: " + lonArr.get(j));
+            group.children.add("Latitude: " + latArr.get(j));
+            group.children.add("Altitude: " + altitudeArr.get(j));
             groups.append(j, group);
         }
     }

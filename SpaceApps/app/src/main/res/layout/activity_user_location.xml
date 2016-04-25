@@ -42,6 +42,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Contrail Probability: "
+        android:textSize="13.5pt"
         android:id="@+id/tvChances"
         android:layout_alignParentEnd="true"
         android:layout_alignBottom="@+id/ivImageToUpload"
