@@ -6,6 +6,7 @@ import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
@@ -80,11 +81,12 @@ public class UserLocationActivity extends AppCompatActivity implements
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
+    public static List<String> callsignArr, headingArr, lonArr, latArr, altitudeArr;
     private double currentLatitude;
     private double currentLongitude;
-    private static final int REQUEST_TAKE_PHOTO = 1;
+    private static final int REQUEST_TAKE_PHOTO = 1, REQUEST_FLIGHT_INFO = 0;
     private String mCurrentPhotoPath, imgPhotoPath;
-    private ImageButton ibCloseBtn;
+    private ImageButton ibCloseBtn, ibInfoBtn;
     private ImageView ivImageToUpload;
     private String imageFileName;
     private TextView tvChances;
@@ -92,14 +94,18 @@ public class UserLocationActivity extends AppCompatActivity implements
     private static final String SERVER_GET_ADDRESS = "http://162.243.248.12:8081/?image=http://vprusso-spaceapps-beta.site88.net/pictures/";
 
     private ProgressBar pbAPIProgressBar = null;
-    private TextView tvAPIResponse;
 
     public void setupVariables() {
         ivImageToUpload = (ImageView) findViewById(R.id.ivImageToUpload);
         ibCloseBtn = (ImageButton) findViewById(R.id.ibCloseBtn);
+        ibInfoBtn = (ImageButton) findViewById(R.id.ibInfoBtn);
         tvChances = (TextView) findViewById(R.id.tvChances);
-        tvAPIResponse = (TextView) findViewById(R.id.tvAPIResponse);
         pbAPIProgressBar = (ProgressBar) findViewById(R.id.pbAPIProgressBar);
+        callsignArr = new ArrayList<String>();
+        headingArr = new ArrayList<String>();
+        lonArr = new ArrayList<String>();
+        latArr = new ArrayList<String>();
+        altitudeArr = new ArrayList<String>();
     }
 
     @Override
@@ -113,6 +119,13 @@ public class UserLocationActivity extends AppCompatActivity implements
             @Override
             public void onClick(View v) {
                 dispatchTakePictureIntent();
+            }
+        });
+
+        ibInfoBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LaunchFlightInfo(v);
             }
         });
 
@@ -384,7 +397,6 @@ public class UserLocationActivity extends AppCompatActivity implements
 
         protected void onPreExecute() {
             pbAPIProgressBar.setVisibility(View.VISIBLE);
-            tvAPIResponse.setText("");
         }
 
         @Override
@@ -449,7 +461,9 @@ public class UserLocationActivity extends AppCompatActivity implements
             //super.onPostExecute(aVoid);
             Toast.makeText(getApplicationContext(), "Image Uploaded", Toast.LENGTH_SHORT).show();
             try {
-                parseWatsonData(response);
+                if(response != null) {
+                    parseWatsonData(response);
+                }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -463,7 +477,6 @@ public class UserLocationActivity extends AppCompatActivity implements
 
         protected void onPreExecute() {
             pbAPIProgressBar.setVisibility(View.VISIBLE);
-            tvAPIResponse.setText("");
         }
 
         protected String doInBackground(Void... urls) {
@@ -503,7 +516,6 @@ public class UserLocationActivity extends AppCompatActivity implements
             }
             pbAPIProgressBar.setVisibility(View.GONE);
             Log.i("INFO", response);
-            tvAPIResponse.setText(response);
             try {
                 parseFlightAPIJSON(response);
             } catch (JSONException e) {
@@ -514,12 +526,24 @@ public class UserLocationActivity extends AppCompatActivity implements
 
     private void parseFlightAPIJSON(String response) throws JSONException{
         JSONObject obj = new JSONObject(response);
+<<<<<<< HEAD
         JSONArray arr = obj.getJSONArray("flightPositions");
         List<String> fids = new ArrayList<String>();
         for(int i=0; i < arr.length(); i++) {
             fids.add(arr.getJSONObject(i).getString("callsign"));
         }
         //tvAPIResponse.setText(fids.toString());
+=======
+        JSONArray fpArr = obj.getJSONArray("flightPositions");
+
+        for(int i=0; i < fpArr.length(); i++) {
+            callsignArr.add(fpArr.getJSONObject(i).getString("callsign"));
+            headingArr.add(Double.toString(Math.round(fpArr.getJSONObject(i).getDouble("heading"))));
+            lonArr.add(Double.toString(Math.round(fpArr.getJSONObject(i).getJSONArray("positions").getJSONObject(0).getDouble("lon"))));
+            latArr.add(Double.toString(Math.round(fpArr.getJSONObject(i).getJSONArray("positions").getJSONObject(0).getDouble("lat"))));
+            altitudeArr.add(Integer.toString(fpArr.getJSONObject(i).getJSONArray("positions").getJSONObject(0).getInt("altitudeFt")));
+        }
+>>>>>>> FlightListView
     }
 
 
@@ -529,9 +553,11 @@ public class UserLocationActivity extends AppCompatActivity implements
         JSONArray respArr = respObj.getJSONArray("images");
         if (!respArr.getJSONObject(0).has("scores")){
             contrail_probability = "0";
+            tvChances.setTextColor(Color.parseColor("#ff0000"));
         } else {
             JSONArray resp_scoreArr = respArr.getJSONObject(0).getJSONArray("scores");
             contrail_probability = Double.toString(Math.round(resp_scoreArr.getJSONObject(0).getDouble("score") * 100.0));
+            tvChances.setTextColor(Color.parseColor("#00ff00"));
         }
         tvChances.setText("Contrail Probability: " + contrail_probability + " %");
     }
@@ -587,6 +613,8 @@ public class UserLocationActivity extends AppCompatActivity implements
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        tvChances.setText("Contrail Probability: ");
+        tvChances.setTextColor(Color.parseColor("#ff0000"));
         if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
                 // Image captured and saved to fileUri specified in the Intent
                 //Toast.makeText(this, "Image saved to:\n" +
@@ -680,5 +708,9 @@ public class UserLocationActivity extends AppCompatActivity implements
         return result.toString();
     }
 
+    public void LaunchFlightInfo (View view){
+        Intent intent = new Intent(this, FlightActivity.class);
+        startActivityForResult(intent, REQUEST_FLIGHT_INFO);
+    }
 
 }

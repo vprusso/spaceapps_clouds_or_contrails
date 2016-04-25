@@ -3,4 +3,8 @@
     <string name="upload_image">Upload Image</string>
     <string name="latitude">Latitude:</string>
     <string name="longitude">Longitude:</string>
+    <string name="title_activity_flight">FlightActivity</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
 </resources>
